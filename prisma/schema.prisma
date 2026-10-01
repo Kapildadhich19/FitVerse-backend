@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AvatarStatus {
+  queued
+  processing
+  completed
+  failed
+}
+
+enum AvatarPhotoType {
+  front
+  left
+  right
+  back
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum LengthUnit {
+  CM
+  IN
+}
+
+enum WeightUnit {
+  KG
+  LB
+}
+
+enum ClothingFit {
+  SLIM
+  REGULAR
+  RELAXED
+  OVERSIZED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  password      String
+  refreshTokens RefreshToken[]
+  digitalTwin   DigitalTwinProfile?
+  avatars       Avatar[]
+  products      Product[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model RefreshToken {
+  id        String    @id
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Avatar {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       AvatarStatus  @default(queued)
+  thumbnailUrl String?
+  modelUrl     String?
+  generationTaskId String?
+  photos       AvatarPhoto[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model AvatarPhoto {
+  id        String          @id @default(cuid())
+  avatarId  String
+  avatar    Avatar          @relation(fields: [avatarId], references: [id], onDelete: Cascade)
+  type      AvatarPhotoType
+  fileUrl   String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([avatarId, type])
+  @@index([avatarId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceUrl   String
+  source      String
+  title       String
+  brand       String?
+  category    String?
+  gender      String?
+  description String?
+  imageUrl    String?
+  images      Json
+  sizes       Json
+  colors      Json
+  price       Float?
+  priceCents  Int?
+  currency    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model DigitalTwinProfile {
+  id              String                   @id @default(cuid())
+  userId          String                   @unique
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  gender          Gender
+  dateOfBirth     DateTime
+  country         String
+  preferredLength LengthUnit
+  preferredWeight WeightUnit
+  completedAt     DateTime?
+  measurements    DigitalTwinMeasurements?
+  appearance      DigitalTwinAppearance?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+}
+
+model DigitalTwinMeasurements {
+  id             String             @id @default(cuid())
+  profileId      String             @unique
+  profile        DigitalTwinProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  height         Float
+  weight         Float
+  chest          Float
+  waist          Float
+  hip            Float
+  shoulderWidth  Float
+  neck           Float
+  armLength      Float
+  forearm        Float
+  wrist          Float
+  thigh          Float
+  calf           Float
+  inseam         Float
+  footLength     Float
+  lengthUnit     LengthUnit
+  weightUnit     WeightUnit
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model DigitalTwinAppearance {
+  id                  String             @id @default(cuid())
+  profileId           String             @unique
+  profile             DigitalTwinProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skinTone            String
+  hairColor           String
+  hairStyle           String
+  eyeColor            String
+  facialHair          String
+  bodyType            String
+  preferredClothingFit ClothingFit
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
